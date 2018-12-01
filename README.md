@@ -13,6 +13,7 @@ This project builds a library in python that downloads images from a twitter fee
   3.Set the environment variable GOOGLE_APPLICATION_CREDENTIALS to the file path of the JSON file that contains your service account key. 
 
 miniproject 3
+
 Do two database implementations with MySQL and MongoDB
 The main requirements:
 1.Detail information of every transaction the user may run using your system
