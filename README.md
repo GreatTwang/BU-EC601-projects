@@ -15,7 +15,9 @@ This project builds a library in python that downloads images from a twitter fee
 miniproject 3
 
 Do two database implementations with MySQL and MongoDB
+
 The main requirements:
+
 1.Detail information of every transaction the user may run using your system
 
 2.Store all relevant information for everytime a user uses your application
