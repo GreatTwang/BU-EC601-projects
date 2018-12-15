@@ -40,8 +40,8 @@ class tweettomovie(object):
 
         self.err = None
 
-    def parse(cls, api, raw):
-        status = cls.first_parse(api, raw)
+    def parse(self, api, raw):
+        status = tweepy.models.User.first_parse(api, raw)
         setattr(status, 'json', json.dumps(raw))
         return status
     
@@ -65,8 +65,8 @@ class tweettomovie(object):
         '''
         get the timeline of specific name and 
         '''
-        tweets = api.user_timeline(screen_name='WeAreMessi',
-                           count=200, include_rts=False,
+        tweets = self.api.user_timeline(screen_name='WeAreMessi',
+                           count=100, include_rts=False,
                            exclude_replies=True)
         last_id = tweets[-1].id
         media_files = set()
@@ -79,7 +79,7 @@ class tweettomovie(object):
             save_name = 'img%03d.jpg'%num
             urllib.request.urlretrieve(media_file,save_name)
             num = num + 1
-        self.log('downloading img%03d.jpg'%num)
+            self.log('downloading img%03d.jpg'%num)
 
     def visionLabel(self):
         '''
@@ -90,6 +90,7 @@ class tweettomovie(object):
         path = './'
         filelist = os.listdir(path)
         total_num = len(filelist)
+        count = 0
         for file in filelist:
             if file.endswith('.jpg'):
                 with io.open(file, 'rb') as image_file:
@@ -110,9 +111,21 @@ class tweettomovie(object):
                 ttfont = ImageFont.truetype("C:/Windows/Fonts/Corbel.ttf", 30)
                 draw.text((w/2-100, h/2-100), labelword, fill=(255, 255, 255), font=ttfont)
                 img.save(file)
+                userName = tweettomovie.file_2_user(file)
+                for l in labelword:
+                    self.mysql_label(userName, l)
+                    self.mongo_label(userName, l)
+                self.log('get label of images{}'.format(count))
+                count+= 1
+        print("images are labeled!")
+    
+    @staticmethod
+    def file_2_user(fname):
+        index = fname.rfind('_')
+        return fname[:index]
     
     def mysql_label(self, uname, label):
-        sql = 'INSERT INTO twt_label(twtid, label, time) VALUES (%s,%s,%s)'
+        sql = 'INSERT INTO twtapi_log(twiid, label, time) VALUES (%s,%s,%s)'
         try:
             with self.mysql.cursor() as cursor:
                 cursor.execute(sql, (uname, label, datetime.now()))
@@ -156,7 +169,7 @@ class tweettomovie(object):
 
 
     def mysqlSearch(self, key):
-        sql = 'SELECT twtid FROM twt_label WHERE label like "%{}%"'.format(key)
+        sql = 'SELECT twiid FROM twtapi_log WHERE label like "%{}%"'.format(key)
         try:
             with self.mysql.cursor() as cursor:
                 cursor.execute(sql)
@@ -228,7 +241,7 @@ class tweettomovie(object):
             raise e
 
     def mysqlSummary(self):
-        sql = 'SELECT idtwtAPI_log FROM twtapi_log'
+        sql = 'SELECT id FROM twtapi_log'
         try:
             with self.mysql.cursor() as cursor:
                 cursor.execute(sql)
@@ -239,7 +252,7 @@ class tweettomovie(object):
             self.mysql.close()
             raise e
         finally:
-            self.mysql_log('count total logs in mysql')
+            self.mysql_log('counted total logs in mysql')
 
     def mongoSummary(self):
         try:
@@ -252,13 +265,13 @@ class tweettomovie(object):
             self.err = e
             raise e
         finally:
-            self.mongo_log('count total logs in mongodb')
+            self.mongo_log('counted total logs in mongodb')
 
     def toVideo(self):
         '''
         using ffmpeg to generate an movie
         '''
-        os.popen('ffmpeg -r 1 -i img%03d.jpg -i bgm.mp3 -vf scale=500:500 -y -r 30 -t 60 messi.mp4')
+        os.popen('ffmpeg -r 1 -i img%03d.jpg -i bgm.mp3 -vf scale=500:500 -y -r 2 -t 20 messi.mp4')
         self.log('video generated!')
 
 if __name__=='__main__':
@@ -278,11 +291,11 @@ if __name__=='__main__':
 
     # get images
     test.get()
-
+    print("get")
     #label
     test.visionLabel()
-
-    keyword = 'messi'
+    print("video!")
+    keyword = 'player'
     mysqlResults = test.mysqlSearch(keyword)
     print('MySQL: These twitter account owns keyword {}'.format(keyword))
     for each in mysqlResults:
@@ -292,11 +305,11 @@ if __name__=='__main__':
     print('MongoDB: These twitter account owns keyword {}'.format(keyword))
     for each in mongoResults:
         print(each)
-
     log_mysql_count = test.mysqlSummary()
-    print('There are', log_mysql_count[0], 'logs in MySQL.')
+    print('There are', log_mysql_count, 'logs in MySQL.')
     log_mongo_count = test.mongoSummary()
     print('There are', log_mongo_count, 'logs in MongoDB.')
-
+    #to video
     test.toVideo()
+
 
